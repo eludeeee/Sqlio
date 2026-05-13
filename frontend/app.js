@@ -3,7 +3,7 @@ let currentCaseIndex = 0;
 let currentUser = JSON.parse(localStorage.getItem('sqlio_user'));
 
 const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
-    ? 'http://localhost:3000/api' 
+    ? 'http://localhost:60006/api' 
     : '/api';
 
 // --- ROUTING & VIEWS ---

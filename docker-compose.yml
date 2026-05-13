@@ -2,7 +2,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "3000:3000"
+      - "60006:3000"
     volumes:
       - ./backend/sqlio.sqlite:/app/sqlio.sqlite
     restart: unless-stopped
@@ -10,7 +10,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "50050:80"
+      - "60005:80"
     depends_on:
       - backend
     restart: unless-stopped
