@@ -24,6 +24,8 @@ function initDb() {
             console.error('Error creating users table:', err.message);
         } else {
             console.log('Users table ready.');
+            const testPassword = hashPassword('test');
+            db.run(`INSERT OR IGNORE INTO users (username, password, score, cases_solved) VALUES ('test', ?, 0, 0)`, [testPassword]);
         }
     });
 }

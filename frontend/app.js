@@ -118,7 +118,8 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
             errorDiv.style.display = 'block';
         }
     } catch (err) {
-        errorDiv.innerText = "Gagal terhubung ke server.";
+        console.error("Fetch error:", err);
+        errorDiv.innerText = "Error: " + err.message;
         errorDiv.style.display = 'block';
     }
 });
