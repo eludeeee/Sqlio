@@ -1,21 +1,156 @@
 let db = null;
 let currentCaseIndex = 0;
+let currentUser = JSON.parse(localStorage.getItem('sqlio_user'));
+
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+    ? 'http://localhost:3000/api' 
+    : '/api';
+
+// --- ROUTING & VIEWS ---
+function showView(viewId) {
+    document.getElementById('auth-view').style.display = 'none';
+    document.getElementById('dashboard-view').style.display = 'none';
+    document.getElementById('game-view').style.display = 'none';
+    
+    const view = document.getElementById(viewId);
+    if(view) {
+        // Remove flex if game-view which uses block/flex differently
+        if(viewId === 'game-view') {
+            view.style.display = 'block';
+        } else {
+            view.style.display = 'flex';
+        }
+    }
+}
+
+function initApp() {
+    if (currentUser) {
+        showDashboard();
+    } else {
+        showView('auth-view');
+    }
+    // Pre-initialize SQL
+    initSQL();
+}
+
+async function showDashboard() {
+    showView('dashboard-view');
+    document.getElementById('dash-username').innerText = currentUser.username;
+    document.getElementById('profile-score').innerText = currentUser.score;
+    document.getElementById('profile-cases').innerText = currentUser.cases_solved;
+    currentCaseIndex = currentUser.cases_solved; // Resume where left off
+    
+    // Update leaderboard
+    loadLeaderboard();
+}
+
+async function loadLeaderboard() {
+    try {
+        const res = await fetch(`${API_URL}/leaderboard`);
+        const data = await res.json();
+        if (data.success) {
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+            data.leaderboard.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                // Highlight current user
+                if (user.username === currentUser.username) {
+                    tr.style.background = 'rgba(56, 189, 248, 0.2)';
+                }
+                tr.innerHTML = `
+                    <td>#${index + 1}</td>
+                    <td>${user.username}</td>
+                    <td>${user.score}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    } catch (e) {
+        console.error("Failed to load leaderboard", e);
+    }
+}
+
+// --- AUTH LOGIC ---
+let isLoginMode = true;
+
+document.getElementById('auth-tab-login').addEventListener('click', (e) => {
+    isLoginMode = true;
+    e.target.classList.add('active');
+    document.getElementById('auth-tab-register').classList.remove('active');
+    document.getElementById('auth-submit-btn').innerText = 'Masuk';
+    document.getElementById('auth-error').style.display = 'none';
+});
+
+document.getElementById('auth-tab-register').addEventListener('click', (e) => {
+    isLoginMode = false;
+    e.target.classList.add('active');
+    document.getElementById('auth-tab-login').classList.remove('active');
+    document.getElementById('auth-submit-btn').innerText = 'Daftar';
+    document.getElementById('auth-error').style.display = 'none';
+});
+
+document.getElementById('auth-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('auth-username').value;
+    const password = document.getElementById('auth-password').value;
+    const errorDiv = document.getElementById('auth-error');
+    
+    const endpoint = isLoginMode ? '/login' : '/register';
+    
+    try {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            if (isLoginMode) {
+                currentUser = data.user;
+            } else {
+                currentUser = { id: data.userId, username, score: 0, cases_solved: 0 };
+            }
+            localStorage.setItem('sqlio_user', JSON.stringify(currentUser));
+            showDashboard();
+        } else {
+            errorDiv.innerText = data.error;
+            errorDiv.style.display = 'block';
+        }
+    } catch (err) {
+        errorDiv.innerText = "Gagal terhubung ke server.";
+        errorDiv.style.display = 'block';
+    }
+});
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+    currentUser = null;
+    localStorage.removeItem('sqlio_user');
+    showView('auth-view');
+    document.getElementById('auth-username').value = '';
+    document.getElementById('auth-password').value = '';
+});
+
+// --- GAME LOGIC ---
+document.getElementById('btn-play').addEventListener('click', () => {
+    showView('game-view');
+    loadCase(currentCaseIndex);
+});
+
+document.getElementById('btn-back-dash').addEventListener('click', () => {
+    showDashboard();
+});
 
 // Initialize SQL.js
 async function initSQL() {
     try {
         const SQL = await initSqlJs({
-            // Fetch the wasm file from a CDN
             locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
         });
         db = new SQL.Database();
-        
-        // Hide loader and load first case
         document.getElementById('loader').style.display = 'none';
-        loadCase(currentCaseIndex);
     } catch (err) {
         console.error("Failed to load SQL.js", err);
-        document.getElementById('loader').innerHTML = "<p>Gagal memuat engine SQL. Periksa koneksi internet Anda.</p>";
     }
 }
 
@@ -27,14 +162,11 @@ function loadCase(index) {
 
     const currentCase = casesData[index];
     
-    // Reset and setup database for current case
     if (db) {
-        // Clear all tables (dirty way: just create a new db instance to be clean)
         db.close();
-        db = new db.constructor(); // Re-instantiate based on the prototype
+        db = new db.constructor(); 
     }
     
-    // Execute setup query
     try {
         db.run(currentCase.setupQuery);
     } catch (e) {
@@ -52,7 +184,6 @@ function loadCase(index) {
     document.getElementById('toggle-clue-btn').innerHTML = '<i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Clue';
     if(window.lucide) window.lucide.createIcons();
     
-    // Reset editor and results
     document.getElementById('sql-editor').value = '';
     document.getElementById('results-body').innerHTML = '';
     document.getElementById('results-head').innerHTML = '';
@@ -164,7 +295,6 @@ function renderResults(result) {
     const columns = result[0].columns;
     const values = result[0].values;
 
-    // Render Headers
     const trHead = document.createElement('tr');
     columns.forEach(col => {
         const th = document.createElement('th');
@@ -173,7 +303,6 @@ function renderResults(result) {
     });
     thead.appendChild(trHead);
 
-    // Render Rows
     values.forEach(row => {
         const tr = document.createElement('tr');
         row.forEach(val => {
@@ -189,32 +318,51 @@ function validateResult(userQuery, userResult) {
     const currentCase = casesData[currentCaseIndex];
     
     try {
-        // Execute expected query to compare
         const expectedResult = db.exec(currentCase.expectedQuery);
         
         if (isResultEqual(userResult, expectedResult)) {
-            showSuccess("Luar biasa! Identifikasi target berhasil dikonfirmasi.");
+            // Case solved correctly!
+            handleCaseSuccess();
         }
     } catch (e) {
         console.error("Expected query error:", e);
     }
 }
 
+async function handleCaseSuccess() {
+    // Determine points (e.g. 100 points per case)
+    const points = 100;
+    
+    try {
+        // Send score to backend
+        await fetch(`${API_URL}/score`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id, points })
+        });
+        
+        // Update local user state
+        currentUser.score += points;
+        currentUser.cases_solved += 1;
+        localStorage.setItem('sqlio_user', JSON.stringify(currentUser));
+        
+        showSuccess(`Luar biasa! Identifikasi target berhasil dikonfirmasi. (+${points} Poin)`);
+    } catch (err) {
+        console.error("Failed to update score", err);
+        showSuccess("Luar biasa! Namun gagal mengirim skor ke server.");
+    }
+}
+
 function isResultEqual(res1, res2) {
     if (res1.length !== res2.length) return false;
-    if (res1.length === 0) return true; // both empty
+    if (res1.length === 0) return true;
     
     const r1 = res1[0];
     const r2 = res2[0];
 
-    // Check column count
     if (r1.columns.length !== r2.columns.length) return false;
-    // Note: column names might be different if user uses aliases, but values should match
-    
-    // Check row count
     if (r1.values.length !== r2.values.length) return false;
 
-    // Check data
     for (let i = 0; i < r1.values.length; i++) {
         for (let j = 0; j < r1.values[i].length; j++) {
             if (r1.values[i][j] !== r2.values[i][j]) {
@@ -256,7 +404,7 @@ function showWinScreen() {
         <div class="panel" style="width: 100%; text-align: center; justify-content: center; align-items: center;">
             <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Misi Selesai</h2>
             <p class="case-description">Selamat Detektif! Anda telah menyelesaikan semua case dan membantu SQLio menjaga keamanan dunia siber.</p>
-            <button onclick="location.reload()" style="margin-top: 2rem;">Mainkan Ulang</button>
+            <button onclick="showDashboard()" style="margin-top: 2rem;">Kembali ke Dashboard</button>
         </div>
     `;
 }
@@ -264,14 +412,13 @@ function showWinScreen() {
 // Attach event listeners
 document.getElementById('run-btn').addEventListener('click', executeQuery);
 
-// Allow Ctrl+Enter to execute
 document.getElementById('sql-editor').addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         executeQuery();
     }
 });
 
-// UI Event Listeners
+// Tab Listeners
 document.getElementById('toggle-clue-btn').addEventListener('click', function() {
     const clueDiv = document.getElementById('case-clue');
     if (clueDiv.style.display === 'none') {
@@ -311,4 +458,4 @@ document.getElementById('tab-btn-db').addEventListener('click', function() {
 });
 
 // Initialize on load
-window.addEventListener('load', initSQL);
+window.addEventListener('load', initApp);

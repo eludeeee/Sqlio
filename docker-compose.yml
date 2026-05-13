@@ -1,9 +1,17 @@
 version: '3.8'
 services:
-  sqlio:
-    build: .
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/sqlio.sqlite:/app/sqlio.sqlite
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
     ports:
       - "8080:80"
-    volumes:
-      - .:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
     restart: unless-stopped

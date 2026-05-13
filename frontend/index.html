@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLio</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="loader" style="display: none;">
+        <div class="spinner"></div>
+        <p>Memuat...</p>
+    </div>
+
+    <!-- AUTH VIEW -->
+    <div id="auth-view" class="view-container">
+        <div class="auth-box">
+            <h1><i data-lucide="shield-alert"></i> SQLio</h1>
+            <p>Akademi Cyber Detective</p>
+            
+            <div class="auth-tabs">
+                <button id="auth-tab-login" class="active">Login</button>
+                <button id="auth-tab-register">Register</button>
+            </div>
+
+            <form id="auth-form">
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="auth-username" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="auth-password" required>
+                </div>
+                <button type="submit" id="auth-submit-btn">Masuk</button>
+                <div id="auth-error" class="error-msg" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboard-view" class="view-container" style="display: none;">
+        <div class="dashboard-header">
+            <h1><i data-lucide="shield-alert"></i> SQLio</h1>
+            <div class="user-info">
+                <span id="dash-username">Detective</span>
+                <button id="btn-logout" class="outline-btn"><i data-lucide="log-out"></i> Logout</button>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="dash-card profile-card">
+                <h3><i data-lucide="user"></i> Profil Anda</h3>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Skor</span>
+                        <span class="stat-value" id="profile-score">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Case Selesai</span>
+                        <span class="stat-value" id="profile-cases">0</span>
+                    </div>
+                </div>
+                <button id="btn-play" class="primary-btn"><i data-lucide="play"></i> Mulai Bermain</button>
+            </div>
+
+            <div class="dash-card leaderboard-card">
+                <h3><i data-lucide="trophy"></i> Leaderboard Global</h3>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Detective</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <tr><td colspan="3" style="text-align: center;">Memuat leaderboard...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME VIEW -->
+    <div id="game-view" style="display: none;">
+        <header>
+            <h1>
+                <i data-lucide="shield-alert"></i>
+                SQLio
+            </h1>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div id="case-progress" class="case-progress">Case -- / --</div>
+                <button id="btn-back-dash" class="outline-btn" style="padding: 0.5rem;"><i data-lucide="home"></i></button>
+            </div>
+        </header>
+
+        <main>
+            <section class="panel left-panel">
+                <h2 id="case-title">Memuat...</h2>
+                <p id="case-description" class="case-description">Silakan tunggu, mendownload file kasus...</p>
+                <div id="case-instruction" class="case-instruction">...</div>
+                <div class="clue-container" style="margin-bottom: 2rem;">
+                    <button id="toggle-clue-btn" style="background: rgba(16, 185, 129, 0.2); color: var(--success); padding: 0.5rem 1rem; border: 1px solid var(--success); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;"><i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Clue</button>
+                    <div id="case-clue" class="case-clue" style="display: none; background: rgba(16, 185, 129, 0.1); padding: 1rem; border-left: 4px solid var(--success); border-radius: 0 8px 8px 0; color: var(--text-main); font-size: 0.95rem; margin-top: 1rem;">
+                        <strong>Clue:</strong> <span id="clue-text">...</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="right-panel">
+                <div class="tabs-container" style="display: flex; gap: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0;">
+                    <button id="tab-btn-query" class="tab-btn active" style="background: rgba(255, 255, 255, 0.1); color: var(--text-main); border: none; padding: 0.75rem 1.5rem; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600;">Terminal Query</button>
+                    <button id="tab-btn-db" class="tab-btn" style="background: transparent; color: var(--text-muted); border: none; padding: 0.75rem 1.5rem; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600;">Database Explorer</button>
+                </div>
+                
+                <div id="view-query" class="tab-content" style="display: flex; flex-direction: column; flex: 1; gap: 1.5rem;">
+                    <div class="editor-container">
+                        <div class="editor-header">
+                            <span><i data-lucide="terminal" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 5px;"></i> Terminal Query SQL</span>
+                            <span>Tekan Ctrl + Enter untuk Eksekusi</span>
+                        </div>
+                        <textarea id="sql-editor" placeholder="Ketik query SELECT Anda di sini..."></textarea>
+                        <div class="actions">
+                            <button id="run-btn">Run Query</button>
+                        </div>
+                    </div>
+
+                    <div class="results-container">
+                        <table id="results-table">
+                            <thead id="results-head"></thead>
+                            <tbody id="results-body"></tbody>
+                        </table>
+                        <div id="empty-state" class="empty-state">
+                            Hasil query akan tampil di sini.
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-db" class="tab-content" style="display: none; flex-direction: column; flex: 1; background: rgba(0, 0, 0, 0.3); border-radius: 0 12px 12px 12px; border: 1px solid rgba(255, 255, 255, 0.1); padding: 1.5rem; overflow: auto;">
+                    <h3 style="color: var(--accent); margin-bottom: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 1rem;">Skema & Data</h3>
+                    <div id="db-explorer-content"></div>
+                </div>
+                
+                <div id="feedback" class="feedback">
+                    <!-- Feedback message -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="cases.js"></script>
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
