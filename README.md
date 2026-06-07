@@ -1,17 +1,17 @@
 # Sqlio 🚀
 
-Sqlio adalah aplikasi web *full-stack* untuk mengelola database SQL (SQLite). Dibuat dengan backend Node.js/Express dan frontend Vanilla JavaScript, serta berjalan sepenuhnya di dalam Docker.
+Sqlio adalah aplikasi web untuk belajar SQL. Dibuat dengan backend Node.js/Express dan frontend Vanilla JavaScript, serta berjalan sepenuhnya di dalam Docker.
 
-## 🌟 Fitur Utama
-- **UI Interaktif:** HTML, CSS, & Vanilla JS.
-- **API Tangguh:** Node.js, Express & SQLite3.
-- **Praktis:** Menggunakan Docker & Docker Compose.
+ ## 🌟 Fitur Utama
+    - **Game Edukasi Interaktif:** Belajar SQL dengan cara yang seru dengan memecahkan berbagai kasus investigasi siber.
+    - **Sistem Akun & Leaderboard:** Lacak *progress* belajar, kumpulkan skor dari kasus yang berhasil diselesaikan, dan bersaing dengan detektif lain di Leaderboard Global!
+    - **Praktis:** Mudah dijalankan di mana saja karena sudah menggunakan Docker & Docker Compose.
 
 ## 🚀 Cara Menjalankan
 
 1. **Clone repository ini:**
    ```bash
-   git clone <repository-url>
+   ** git clone https://github.com/eludeeee/Sqlio.git**
    cd Sqlio
    ```
 
@@ -32,5 +32,5 @@ Sqlio adalah aplikasi web *full-stack* untuk mengelola database SQL (SQLite). Di
 **Dashboard Utama**
 ![Dashboard Sqlio](assets/dashboard.png)
 
-**Halaman Game/Kasus**
+**Halaman Game**
 ![Game Sqlio](assets/game.png)
